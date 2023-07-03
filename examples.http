@@ -1,0 +1,10 @@
+GET http://localhost:3000/questions
+Accept: application/json
+
+###
+GET http://localhost:3000/questions/1
+Accept: application/json
+
+###
+GET http://localhost:3000/blargh
+Accept: application/json

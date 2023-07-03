@@ -1,0 +1,12 @@
+[package]
+name = "backend"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1.0" #Simple error handling
+hyper = { version = "0.14", features = ["full"]} # Our HTTP/Networking stack
+tokio = { version = "1.28.0", features = ["full"]} # Async runtime
+serde = { version = "1.0", features = ["derive"]} # serialization to/from strings
+serde_json = "1.0"
+rand = "0.8.5"
