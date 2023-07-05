@@ -1,3 +1,10 @@
+mod question;
+mod db;
+mod routes;
+mod error;
+mod layers;
+mod handlers;
+
 use std::error::Error;
 use std::net::{IpAddr, SocketAddr};
 use std::str::FromStr;
@@ -18,8 +25,11 @@ async fn main() {
     
     let addr = get_host_from_env();
 
-    let app = Router::new()
-        .route("/questions", get(hello_world));
+    let (cors_layer, trace_layer) = layers::get_layers();
+
+    //let app = Router::new()
+    //    .route("/questions", get(hello_world));
+    let app = routes::get_router().layer(cors_layer).layer(trace_layer);
 
     axum::Server::bind(&addr)
         .serve(app.into_make_service())
