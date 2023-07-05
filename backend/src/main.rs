@@ -19,7 +19,7 @@ async fn main() {
     let addr = get_host_from_env();
 
     let app = Router::new()
-        .route("/questions", get(|| async { "Hello world!!!"}));
+        .route("/questions", get(hello_world));
 
     axum::Server::bind(&addr)
         .serve(app.into_make_service())
@@ -29,13 +29,17 @@ async fn main() {
 
 }
 
+async fn hello_world() -> String {
+    "Hello World!".to_string()
+}
+
 fn get_host_from_env() -> SocketAddr {
     let host = std::env::var("API_HOST").unwrap();
     let api_host = IpAddr::from_str(&host).unwrap();
     let api_port: u16 = std::env::var("API_PORT")
-        .unwrap()
+        .expect("Could not find API_PORT in .env file")
         .parse()
-        .unwrap();
+        .expect("Can't create a u16 from the given API_PORT string");
 
     SocketAddr::from((api_host, api_port))
 }
