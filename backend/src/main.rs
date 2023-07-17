@@ -1,3 +1,12 @@
+use std::net::{IpAddr, SocketAddr};
+use std::str::FromStr;
+
+use dotenvy::dotenv;
+use tracing_subscriber::layer::SubscriberExt;
+use tracing_subscriber::util::SubscriberInitExt;
+
+use crate::error::AppError;
+
 mod question;
 mod db;
 mod routes;
@@ -5,21 +14,8 @@ mod error;
 mod layers;
 mod handlers;
 
-use std::error::Error;
-use std::net::{IpAddr, SocketAddr};
-use std::str::FromStr;
-use axum::Router;
-use axum::routing::{get, MethodRouter};
-use hyper::{Body, Method, Response};
-use hyper::server::conn::Http;
-use hyper::service::service_fn;
-use tokio::net::TcpListener;
-use dotenvy::dotenv;
-use tracing_subscriber::layer::SubscriberExt;
-use tracing_subscriber::util::SubscriberInitExt;
-
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<(), AppError> {
     dotenv().ok();
     init_logging();
     
@@ -29,16 +25,17 @@ async fn main() {
 
     //let app = Router::new()
     //    .route("/questions", get(hello_world));
-    let app = routes::get_router().layer(cors_layer).layer(trace_layer);
+    let app = routes::get_router().await?.layer(cors_layer).layer(trace_layer);
 
     axum::Server::bind(&addr)
         .serve(app.into_make_service())
         .await
         .unwrap();
 
-
+    Ok(())
 }
 
+#[allow(dead_code)]
 async fn hello_world() -> String {
     "Hello World!".to_string()
 }

@@ -1,5 +1,3 @@
-use std::fmt;
-
 use derive_more::Display;
 use serde_derive::{Deserialize, Serialize};
 
@@ -22,6 +20,7 @@ pub struct Question {
 
 
 impl Question {
+    #[allow(dead_code)]
     pub fn new(id: QuestionId, title: String, content: String, tags: Option<Vec<String>>) -> Self {
         Question {
             id,
@@ -32,7 +31,7 @@ impl Question {
     }
 }
 
-#[derive(Clone, Debug, Display, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Display, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct QuestionId(pub u32);
 
 // Clients use this to create new requests

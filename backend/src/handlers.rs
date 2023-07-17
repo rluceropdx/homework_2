@@ -1,9 +1,11 @@
 use axum::extract::{Path, Query, State};
 use axum::Json;
-use crate::db::Store;
-use crate::error::{AppError, QuestionError};
-use crate::question::{CreateQuestion, GetQuestionById, Question, QuestionId, UpdateQuestion};
 
+use crate::db::Store;
+use crate::error::AppError;
+use crate::question::{CreateQuestion, GetQuestionById, Question, QuestionId};
+
+#[allow(dead_code)]
 pub async fn root() -> String {
     "Hello world!".to_string()
 }
@@ -28,10 +30,10 @@ pub async fn get_question_by_id(
 pub async fn create_question(
     State(mut am_database): State<Store>,
     Json(question): Json<CreateQuestion>,
-) -> Result<Json<Question>, AppError> {
-    let new_question = am_database.add_question(question.title, question.content, question.tags)?;
+) -> Result<Json<()>, AppError> {
+    am_database.add_question(question.title, question.content, question.tags).await?;
 
-    Ok(Json(new_question)) // ORM - object relational mapper
+    Ok(Json(())) // ORM - object relational mapper
 }
 
 pub async fn update_question(
