@@ -1,5 +1,6 @@
 use axum::extract::{Path, Query, State};
 use axum::Json;
+use crate::answer::{Answer, CreateAnswer};
 
 use crate::db::Store;
 use crate::error::AppError;
@@ -51,4 +52,12 @@ pub async fn delete_question(
     am_database.delete_question(QuestionId(query.question_id))?;
 
     Ok(())
+}
+
+pub async fn create_answer(
+    State(mut am_database): State<Store>,
+    Json(answer): Json<CreateAnswer>,
+) -> Result<Json<Answer>, AppError> {
+    let new_answer = am_database.add_answer(answer.content, answer.question_id)?;
+    Ok(Json(new_answer))
 }
