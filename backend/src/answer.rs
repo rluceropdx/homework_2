@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+
 use crate::question::QuestionId;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -7,11 +8,12 @@ pub struct Answer {
     pub content: String,
     pub question_id: QuestionId,
 }
-#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq, Hash)]
-pub struct AnswerId(pub u32);
 
-impl From<u32> for AnswerId {
-    fn from(value: u32) -> Self {
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq, Hash)]
+pub struct AnswerId(pub i32);
+
+impl From<i32> for AnswerId {
+    fn from(value: i32) -> Self {
         Self(value)
     }
 }
@@ -19,5 +21,5 @@ impl From<u32> for AnswerId {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CreateAnswer {
     pub content: String,
-    pub question_id: QuestionId
+    pub question_id: i32,
 }

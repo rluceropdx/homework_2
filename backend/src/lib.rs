@@ -1,3 +1,13 @@
+use std::net::{IpAddr, SocketAddr};
+use std::str::FromStr;
+
+use dotenvy::dotenv;
+use tracing::info;
+use tracing_subscriber::layer::SubscriberExt;
+use tracing_subscriber::util::SubscriberInitExt;
+
+use crate::db::new_pool;
+
 pub mod answer;
 pub mod db;
 pub mod error;
@@ -5,23 +15,6 @@ pub mod handlers;
 pub mod layers;
 pub mod question;
 pub mod routes;
-
-use axum::routing::{get, MethodRouter};
-use axum::Router;
-use dotenvy::dotenv;
-use hyper::server::conn::Http;
-use hyper::service::service_fn;
-use hyper::{Body, Method, Response};
-use sqlx::postgres::PgPoolOptions;
-use sqlx::PgPool;
-use std::error::Error;
-use std::net::{IpAddr, SocketAddr};
-use std::str::FromStr;
-use tokio::net::TcpListener;
-use tracing::info;
-use tracing_subscriber::layer::SubscriberExt;
-use tracing_subscriber::util::SubscriberInitExt;
-use crate::db::new_pool;
 
 pub async fn run_backend() {
     dotenv().ok();

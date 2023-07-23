@@ -1,17 +1,17 @@
-use crate::db::Store;
-use crate::handlers::root;
-use crate::{handlers, layers};
 use axum::response::Response;
-use axum::routing::*;
 use axum::Router;
+use axum::routing::*;
 use http::StatusCode;
 use hyper::Body;
 use sqlx::PgPool;
-use tower_http::cors::CorsLayer;
 use tracing::info;
 
+use crate::{handlers, layers};
+use crate::db::Store;
+use crate::handlers::root;
+
 pub async fn app(pool: PgPool) -> Router {
-    let mut db = Store::with_pool(pool);
+    let db = Store::with_pool(pool);
 
     info!("Seeded database");
 

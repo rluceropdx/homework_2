@@ -1,13 +1,12 @@
 use std::sync::{Arc, Mutex, RwLock};
 
-use sqlx::postgres::PgPoolOptions;
 use sqlx::PgPool;
-use tower::util::ServiceExt;
+use sqlx::postgres::PgPoolOptions;
 use tracing::info;
 
-use crate::answer::Answer;
-use crate::error::{AppError, QuestionError};
-use crate::question::{Question, QuestionId};
+use crate::answer::{Answer, AnswerId};
+use crate::error::AppError;
+use crate::question::{IntoQuestionId, Question, QuestionId, UpdateQuestion};
 
 #[derive(Clone)]
 pub struct Store {
@@ -35,7 +34,7 @@ impl Store {
     }
 
     pub async fn test_database(&self) -> Result<(), sqlx::Error> {
-        let row: (i64,) = sqlx::query_as("SELECT $1")
+        let row: (i64, ) = sqlx::query_as("SELECT $1")
             .bind(150_i64)
             .fetch_one(&self.conn_pool)
             .await?;
@@ -46,21 +45,88 @@ impl Store {
         Ok(())
     }
 
-    pub fn add_answer(
+    pub async fn add_answer(
         &mut self,
         content: String,
-        question_id: QuestionId,
+        question_id: i32,
     ) -> Result<Answer, AppError> {
-        let mut answer = self.answers.write().unwrap();
-        let len = answer.len() as u32;
+        dbg!("IN ADD ANSWER");
 
-        let new_answer = Answer {
-            id: len.into(),
+
+        sqlx::query!(
+            r#"
+    INSERT INTO answers (content, question_id)
+    VALUES ($1, $2)
+    "#,
             content,
             question_id,
+        )
+            .execute(&self.conn_pool)
+            .await?;
+
+        let row = sqlx::query!(
+    "SELECT * FROM answers WHERE id = $1",
+    question_id
+)
+            .fetch_one(&self.conn_pool)
+            .await?;
+
+        let answer = Answer {
+            id: AnswerId(row.id),
+            content: row.content,
+            question_id: QuestionId(row.question_id.unwrap()),
         };
-        answer.push(new_answer.clone());
-        Ok(new_answer)
+
+        Ok(answer)
+    }
+
+    pub async fn get_all_questions(&mut self) -> Result<Vec<Question>, AppError> {
+        let rows = sqlx::query!(
+            r#"
+SELECT * FROM questions
+"#
+        )
+            .fetch_all(&self.conn_pool)
+            .await?;
+
+        let mut questions = Vec::new();
+
+        for row in rows {
+            let question = Question {
+                id: row.id.into(), // Assuming you have a From<u32> for QuestionId
+                title: row.title,
+                content: row.content,
+                tags: row.tags,
+            };
+            questions.push(question);
+        }
+
+        Ok(questions)
+    }
+
+    pub async fn get_question_by_id<T: IntoQuestionId>(
+        &mut self,
+        id: T,
+    ) -> Result<Question, AppError> {
+        let id = id.into_question_id();
+
+        let row = sqlx::query!(
+            r#"
+    SELECT * FROM questions WHERE id = $1
+    "#,
+            id.0,
+        )
+            .fetch_one(&self.conn_pool)
+            .await?;
+
+        let question = Question {
+            id: row.id.into(), // Assuming you have a From<u32> for QuestionId
+            title: row.title,
+            content: row.content,
+            tags: row.tags,
+        };
+
+        Ok(question)
     }
 
     pub async fn add_question(
@@ -71,47 +137,69 @@ impl Store {
     ) -> Result<(), AppError> {
         sqlx::query!(
             r#"INSERT INTO "questions"(title, content, tags)
-               VALUES ($1, $2, $3)
-            "#,
+           VALUES ($1, $2, $3)
+        "#,
             title,
             content,
             tags.as_deref()
         )
-        .execute(&self.conn_pool)
-        .await?;
+            .execute(&self.conn_pool)
+            .await?;
 
         Ok(())
     }
 
-    pub fn get_all_questions(&self) -> Vec<Question> {
-        self.questions.lock().unwrap().clone()
+    pub async fn update_question(
+        &mut self,
+        new_question: UpdateQuestion,
+    ) -> Result<Question, AppError> {
+        sqlx::query!(
+            r#"
+    UPDATE questions
+    SET title = $1, content = $2, tags = $3
+    WHERE id = $4
+    "#,
+            new_question.title,
+            new_question.content,
+            new_question.tags.as_deref(),
+            new_question.id.0,
+        )
+            .execute(&self.conn_pool)
+            .await?;
+
+        let row = sqlx::query!(
+        r#"
+SELECT title, content, id, tags FROM questions WHERE id = $1
+"#,
+        new_question.id.0,
+    )
+            .fetch_one(&self.conn_pool)
+            .await?;
+
+        let question = Question {
+            title: row.title,
+            content: row.content,
+            id: QuestionId(row.id),
+            tags: row.tags,
+        };
+
+        Ok(question)
     }
 
-    pub fn get_question_by_id(&self, id: QuestionId) -> Result<Question, AppError> {
-        let mut questions = self.questions.lock().expect("Poisoned mutex");
-        let question = questions.iter().find(|q| q.id == id).cloned();
-
-        question.ok_or(AppError::Question(QuestionError::InvalidId))
-    }
-
-    pub fn update_question(&mut self, new_question: Question) -> Result<Question, AppError> {
-        let mut questions = self.questions.lock().expect("Poisoned mutex");
-
-        let index = new_question.id.0;
-
-        if index as usize >= questions.len() {
-            return Err(AppError::Question(QuestionError::InvalidId));
-        }
-
-        questions[index as usize] = new_question.clone();
-
-        Ok(new_question)
-    }
-
-    pub fn delete_question(&mut self, question_id: QuestionId) -> Result<(), AppError> {
-        let mut questions = self.questions.lock().expect("Poisoned mutex");
-
-        questions.retain(|q| q.id != question_id);
+    pub async fn delete_question(
+        &mut self,
+        question_id: i32,
+    ) -> Result<(), AppError> {
+        let question_id = question_id.into_question_id();
+        println!("DELETE - Question id is {}", &question_id);
+        sqlx::query!(
+            r#"
+    DELETE FROM questions WHERE id = $1
+    "#,
+            question_id.0,
+        )
+            .execute(&self.conn_pool)
+            .await.unwrap();
 
         Ok(())
     }
