@@ -2,31 +2,35 @@ use std::net::{IpAddr, SocketAddr};
 use std::str::FromStr;
 
 use dotenvy::dotenv;
+use tracing::info;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 
 use crate::error::AppError;
 
-mod question;
+mod answer;
 mod db;
-mod routes;
 mod error;
-mod layers;
 mod handlers;
+mod layers;
+mod question;
+mod routes;
 
 #[tokio::main]
 async fn main() -> Result<(), AppError> {
     dotenv().ok();
     init_logging();
-    
+
     let addr = get_host_from_env();
 
     let (cors_layer, trace_layer) = layers::get_layers();
 
-    //let app = Router::new()
-    //    .route("/questions", get(hello_world));
-    let app = routes::get_router().await?.layer(cors_layer).layer(trace_layer);
+    let app = routes::get_router()
+        .await?
+        .layer(cors_layer)
+        .layer(trace_layer);
 
+    info!("Server is listening on {}", &addr);
     axum::Server::bind(&addr)
         .serve(app.into_make_service())
         .await

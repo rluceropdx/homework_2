@@ -9,7 +9,7 @@ pub enum AppError {
     Question(QuestionError),
     Database(sqlx::Error),
     #[allow(dead_code)]
-    Any(anyhow::Error)
+    Any(anyhow::Error),
 }
 
 #[derive(derive_more::Display, Debug)]

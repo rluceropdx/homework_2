@@ -1,6 +1,7 @@
 use axum::extract::{Path, Query, State};
 use axum::Json;
 
+use crate::answer::{Answer, CreateAnswer};
 use crate::db::Store;
 use crate::error::AppError;
 use crate::question::{CreateQuestion, GetQuestionById, Question, QuestionId};
@@ -12,7 +13,7 @@ pub async fn root() -> String {
 
 // CRUD create - read - update - delete
 pub async fn get_questions(
-    State(am_database): State<Store>
+    State(am_database): State<Store>,
 ) -> Result<Json<Vec<Question>>, AppError> {
     let all_questions = am_database.get_all_questions();
 
@@ -21,7 +22,7 @@ pub async fn get_questions(
 
 pub async fn get_question_by_id(
     State(am_database): State<Store>,
-    Path(query): Path<u32>,    // localhost:3000/question/5
+    Path(query): Path<u32>, // Path means localhost:3000/question/5
 ) -> Result<Json<Question>, AppError> {
     let question = am_database.get_question_by_id(QuestionId(query))?;
     Ok(Json(question))
@@ -31,24 +32,34 @@ pub async fn create_question(
     State(mut am_database): State<Store>,
     Json(question): Json<CreateQuestion>,
 ) -> Result<Json<()>, AppError> {
-    am_database.add_question(question.title, question.content, question.tags).await?;
+    am_database
+        .add_question(question.title, question.content, question.tags)
+        .await?;
 
-    Ok(Json(())) // ORM - object relational mapper
+    Ok(Json(()))
 }
 
 pub async fn update_question(
     State(mut am_database): State<Store>,
     Json(question): Json<Question>,
 ) -> Result<Json<Question>, AppError> {
-   let updated_question = am_database.update_question(question)?;
+    let updated_question = am_database.update_question(question)?;
     Ok(Json(updated_question))
 }
 
 pub async fn delete_question(
     State(mut am_database): State<Store>,
-    Query(query): Query<GetQuestionById> // /question?question_id=1
+    Query(query): Query<GetQuestionById>, // Query means /question?question_id=1
 ) -> Result<(), AppError> {
     am_database.delete_question(QuestionId(query.question_id))?;
 
     Ok(())
+}
+
+pub async fn create_answer(
+    State(mut am_database): State<Store>,
+    Json(answer): Json<CreateAnswer>,
+) -> Result<Json<Answer>, AppError> {
+    let new_answer = am_database.add_answer(answer.content, answer.question_id)?;
+    Ok(Json(new_answer))
 }

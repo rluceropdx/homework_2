@@ -4,11 +4,11 @@ use serde_derive::{Deserialize, Serialize};
 // This uses the `derive_more` crate to reduce the Display boilerplate (see below)
 #[derive(Clone, Debug, Display, Serialize, Deserialize)]
 #[display(
-fmt = "id: {}, title: {}, content: {}, tags: {:?}",
-id,
-title,
-content,
-tags
+    fmt = "id: {}, title: {}, content: {}, tags: {:?}",
+    id,
+    title,
+    content,
+    tags
 )]
 pub struct Question {
     pub id: QuestionId,
@@ -16,8 +16,6 @@ pub struct Question {
     pub content: String,
     pub tags: Option<Vec<String>>,
 }
-
-
 
 impl Question {
     #[allow(dead_code)]
@@ -47,7 +45,6 @@ pub struct GetQuestionById {
     pub question_id: u32,
 }
 
-
 #[derive(Debug, Serialize, Deserialize)]
 pub struct UpdateQuestion {
     pub id: QuestionId,
@@ -55,4 +52,3 @@ pub struct UpdateQuestion {
     pub content: String,
     pub tags: Option<Vec<String>>,
 }
-

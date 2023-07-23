@@ -1,15 +1,16 @@
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, RwLock};
 
 use sqlx::PgPool;
 use sqlx::postgres::PgPoolOptions;
-use tracing::info;
 
+use crate::answer::Answer;
 use crate::error::{AppError, QuestionError};
 use crate::question::{Question, QuestionId};
 
 #[derive(Clone)]
 pub struct Store {
     pub questions: Arc<Mutex<Vec<Question>>>,
+    pub answers: Arc<RwLock<Vec<Answer>>>,
     pub conn_pool: PgPool,
 }
 
@@ -28,13 +29,11 @@ impl Store {
             .fetch_one(&pool)
             .await?;
 
-        // email@email.com  DROP TABLES;
-
         assert_eq!(row.0, 150);
-        info!("Database test result: {}", row.0);
 
         let store = Store {
-            questions: Arc::new(Mutex::new(vec![])),
+            questions: Default::default(),
+            answers: Default::default(),
             conn_pool: pool,
         };
 
@@ -92,5 +91,22 @@ impl Store {
         questions.retain(|q| q.id != question_id);
 
         Ok(())
+    }
+
+    pub fn add_answer(
+        &mut self,
+        content: String,
+        question_id: QuestionId,
+    ) -> Result<Answer, AppError> {
+        let mut answer = self.answers.write().unwrap();
+        let len = answer.len() as u32;
+
+        let new_answer = Answer {
+            id: len.into(),
+            content,
+            question_id,
+        };
+        answer.push(new_answer.clone());
+        Ok(new_answer)
     }
 }
