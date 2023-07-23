@@ -1,44 +1,66 @@
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, RwLock};
 
-use sqlx::PgPool;
 use sqlx::postgres::PgPoolOptions;
+use sqlx::PgPool;
+use tower::util::ServiceExt;
 use tracing::info;
 
+use crate::answer::Answer;
 use crate::error::{AppError, QuestionError};
 use crate::question::{Question, QuestionId};
 
 #[derive(Clone)]
 pub struct Store {
-    pub questions: Arc<Mutex<Vec<Question>>>,
     pub conn_pool: PgPool,
+    pub questions: Arc<Mutex<Vec<Question>>>,
+    pub answers: Arc<RwLock<Vec<Answer>>>,
+}
+
+pub async fn new_pool() -> PgPool {
+    let db_url = std::env::var("DATABASE_URL").unwrap();
+    PgPoolOptions::new()
+        .max_connections(5)
+        .connect(&db_url)
+        .await
+        .unwrap()
 }
 
 impl Store {
-    pub async fn initialize_database_connection() -> Result<Self, AppError> {
-        let db_url = std::env::var("DATABASE_URL").unwrap();
+    pub fn with_pool(pool: PgPool) -> Self {
+        Self {
+            conn_pool: pool,
+            questions: Default::default(),
+            answers: Default::default(),
+        }
+    }
 
-        let pool = PgPoolOptions::new()
-            .max_connections(5)
-            .connect(&db_url)
-            .await?;
-
-        // Make a simple query to return the given parameter (use a question mark `?` instead of `$1` for MySQL)
+    pub async fn test_database(&self) -> Result<(), sqlx::Error> {
         let row: (i64,) = sqlx::query_as("SELECT $1")
             .bind(150_i64)
-            .fetch_one(&pool)
+            .fetch_one(&self.conn_pool)
             .await?;
 
-        // email@email.com  DROP TABLES;
+        info!("{}", &row.0);
 
         assert_eq!(row.0, 150);
-        info!("Database test result: {}", row.0);
+        Ok(())
+    }
 
-        let store = Store {
-            questions: Arc::new(Mutex::new(vec![])),
-            conn_pool: pool,
+    pub fn add_answer(
+        &mut self,
+        content: String,
+        question_id: QuestionId,
+    ) -> Result<Answer, AppError> {
+        let mut answer = self.answers.write().unwrap();
+        let len = answer.len() as u32;
+
+        let new_answer = Answer {
+            id: len.into(),
+            content,
+            question_id,
         };
-
-        Ok(store)
+        answer.push(new_answer.clone());
+        Ok(new_answer)
     }
 
     pub async fn add_question(
@@ -66,7 +88,7 @@ impl Store {
     }
 
     pub fn get_question_by_id(&self, id: QuestionId) -> Result<Question, AppError> {
-        let questions = self.questions.lock().expect("Poisoned mutex");
+        let mut questions = self.questions.lock().expect("Poisoned mutex");
         let question = questions.iter().find(|q| q.id == id).cloned();
 
         question.ok_or(AppError::Question(QuestionError::InvalidId))
@@ -92,5 +114,14 @@ impl Store {
         questions.retain(|q| q.id != question_id);
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn it_works() {
+        let result = 2 + 2;
+        assert_eq!(result, 4);
     }
 }

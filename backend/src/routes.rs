@@ -1,19 +1,26 @@
+use crate::db::Store;
+use crate::handlers::root;
+use crate::{handlers, layers};
 use axum::response::Response;
-use axum::Router;
 use axum::routing::*;
+use axum::Router;
 use http::StatusCode;
 use hyper::Body;
+use sqlx::PgPool;
+use tower_http::cors::CorsLayer;
+use tracing::info;
 
-use crate::db::Store;
-use crate::error::AppError;
-use crate::handlers;
+pub async fn app(pool: PgPool) -> Router {
+    let mut db = Store::with_pool(pool);
 
-pub async fn get_router() -> Result<Router, AppError> {
-    let db = Store::initialize_database_connection().await?;
-    let router =Router::new()
+    info!("Seeded database");
+
+    let (cors_layer, trace_layer) = layers::get_layers();
+
+    Router::new()
         // The router matches these FROM TOP TO BOTTOM explicitly!
+        .route("/", get(root))
         .route("/questions", get(handlers::get_questions))
-        // http://localhost:3000/question/1
         .route("/question/:question_id", get(handlers::get_question_by_id))
         .route("/question", post(handlers::create_question))
         .route("/question", put(handlers::update_question))
@@ -22,13 +29,12 @@ pub async fn get_router() -> Result<Router, AppError> {
         .route("/answer", post(handlers::create_answer))
 
         .route("/*_", get(handle_404))
-        .with_state(db);
-    Ok(router)
+        .layer(cors_layer)
+        .layer(trace_layer)
+        .with_state(db)
 }
 
-
-
-async fn handle_404() ->  Response<Body> {
+async fn handle_404() -> Response<Body> {
     Response::builder()
         .status(StatusCode::NOT_FOUND)
         .body(Body::from("The requested page could not be found"))

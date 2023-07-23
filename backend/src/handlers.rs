@@ -34,7 +34,7 @@ pub async fn create_question(
 ) -> Result<Json<()>, AppError> {
     am_database.add_question(question.title, question.content, question.tags).await?;
 
-    Ok(Json(())) // ORM - object relational mapper
+    Ok(Json(()))
 }
 
 pub async fn update_question(
