@@ -1,7 +1,8 @@
+use axum::Json;
 use std::sync::{Arc, Mutex, RwLock};
 
-use sqlx::PgPool;
 use sqlx::postgres::PgPoolOptions;
+use sqlx::PgPool;
 use tracing::info;
 
 use crate::answer::{Answer, AnswerId};
@@ -34,7 +35,7 @@ impl Store {
     }
 
     pub async fn test_database(&self) -> Result<(), sqlx::Error> {
-        let row: (i64, ) = sqlx::query_as("SELECT $1")
+        let row: (i64,) = sqlx::query_as("SELECT $1")
             .bind(150_i64)
             .fetch_one(&self.conn_pool)
             .await?;
@@ -50,31 +51,22 @@ impl Store {
         content: String,
         question_id: i32,
     ) -> Result<Answer, AppError> {
-        dbg!("IN ADD ANSWER");
-
-
-        sqlx::query!(
+        let res = sqlx::query!(
             r#"
     INSERT INTO answers (content, question_id)
     VALUES ($1, $2)
+    RETURNING *
     "#,
             content,
             question_id,
         )
-            .execute(&self.conn_pool)
-            .await?;
-
-        let row = sqlx::query!(
-    "SELECT * FROM answers WHERE id = $1",
-    question_id
-)
-            .fetch_one(&self.conn_pool)
-            .await?;
+        .fetch_one(&self.conn_pool)
+        .await?;
 
         let answer = Answer {
-            id: AnswerId(row.id),
-            content: row.content,
-            question_id: QuestionId(row.question_id.unwrap()),
+            id: AnswerId(res.id),
+            content: res.content,
+            question_id: QuestionId(res.question_id.unwrap()),
         };
 
         Ok(answer)
@@ -86,20 +78,20 @@ impl Store {
 SELECT * FROM questions
 "#
         )
-            .fetch_all(&self.conn_pool)
-            .await?;
+        .fetch_all(&self.conn_pool)
+        .await?;
 
-        let mut questions = Vec::new();
-
-        for row in rows {
-            let question = Question {
-                id: row.id.into(), // Assuming you have a From<u32> for QuestionId
-                title: row.title,
-                content: row.content,
-                tags: row.tags,
-            };
-            questions.push(question);
-        }
+        let questions: Vec<_> = rows
+            .into_iter()
+            .map(|row| {
+                Question {
+                    id: row.id.into(), // Assuming you have a From<u32> for QuestionId
+                    title: row.title,
+                    content: row.content,
+                    tags: row.tags,
+                }
+            })
+            .collect();
 
         Ok(questions)
     }
@@ -116,8 +108,8 @@ SELECT * FROM questions
     "#,
             id.0,
         )
-            .fetch_one(&self.conn_pool)
-            .await?;
+        .fetch_one(&self.conn_pool)
+        .await?;
 
         let question = Question {
             id: row.id.into(), // Assuming you have a From<u32> for QuestionId
@@ -134,19 +126,27 @@ SELECT * FROM questions
         title: String,
         content: String,
         tags: Option<Vec<String>>,
-    ) -> Result<(), AppError> {
-        sqlx::query!(
+    ) -> Result<Json<Question>, AppError> {
+        let res = sqlx::query!(
             r#"INSERT INTO "questions"(title, content, tags)
            VALUES ($1, $2, $3)
+           RETURNING *
         "#,
             title,
             content,
             tags.as_deref()
         )
-            .execute(&self.conn_pool)
-            .await?;
+        .fetch_one(&self.conn_pool)
+        .await?;
 
-        Ok(())
+        let new_question = Question {
+            id: QuestionId(res.id),
+            title: res.title,
+            content: res.content,
+            tags: res.tags,
+        };
+
+        Ok(Json(new_question))
     }
 
     pub async fn update_question(
@@ -164,17 +164,17 @@ SELECT * FROM questions
             new_question.tags.as_deref(),
             new_question.id.0,
         )
-            .execute(&self.conn_pool)
-            .await?;
+        .execute(&self.conn_pool)
+        .await?;
 
         let row = sqlx::query!(
-        r#"
+            r#"
 SELECT title, content, id, tags FROM questions WHERE id = $1
 "#,
-        new_question.id.0,
-    )
-            .fetch_one(&self.conn_pool)
-            .await?;
+            new_question.id.0,
+        )
+        .fetch_one(&self.conn_pool)
+        .await?;
 
         let question = Question {
             title: row.title,
@@ -186,10 +186,7 @@ SELECT title, content, id, tags FROM questions WHERE id = $1
         Ok(question)
     }
 
-    pub async fn delete_question(
-        &mut self,
-        question_id: i32,
-    ) -> Result<(), AppError> {
+    pub async fn delete_question(&mut self, question_id: i32) -> Result<(), AppError> {
         let question_id = question_id.into_question_id();
         println!("DELETE - Question id is {}", &question_id);
         sqlx::query!(
@@ -198,8 +195,9 @@ SELECT title, content, id, tags FROM questions WHERE id = $1
     "#,
             question_id.0,
         )
-            .execute(&self.conn_pool)
-            .await.unwrap();
+        .execute(&self.conn_pool)
+        .await
+        .unwrap();
 
         Ok(())
     }
