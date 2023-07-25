@@ -1,3 +1,6 @@
+use crate::answer::AnswerResult;
+use crate::comment::CommentResult;
+use chrono::NaiveDateTime;
 use derive_more::Display;
 use serde_derive::{Deserialize, Serialize};
 
@@ -91,4 +94,15 @@ pub struct UpdateQuestion {
     pub title: String,
     pub content: String,
     pub tags: Option<Vec<String>>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct QuestionResult {
+    pub id: i32,
+    pub title: String,
+    pub content: String,
+    pub tags: Option<Vec<String>>,
+    pub created_on: NaiveDateTime,
+    pub comments: Vec<CommentResult>,
+    pub answers: Vec<AnswerResult>,
 }

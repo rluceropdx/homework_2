@@ -22,10 +22,15 @@ pub async fn app(pool: PgPool) -> Router {
         .route("/", get(root))
         .route("/questions", get(handlers::get_questions))
         .route("/question/:question_id", get(handlers::get_question_by_id))
+        .route(
+            "/question_comments/:question_id",
+            get(handlers::get_question_comments),
+        )
         .route("/question", post(handlers::create_question))
         .route("/question", put(handlers::update_question))
         .route("/question", delete(handlers::delete_question))
         .route("/answer", post(handlers::create_answer))
+        .route("/comment", post(handlers::create_comment))
         .route("/*_", get(handle_404))
         .layer(cors_layer)
         .layer(trace_layer)

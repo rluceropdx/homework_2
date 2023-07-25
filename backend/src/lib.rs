@@ -9,6 +9,7 @@ use tracing_subscriber::util::SubscriberInitExt;
 use crate::db::new_pool;
 
 pub mod answer;
+pub mod comment;
 pub mod db;
 pub mod error;
 pub mod handlers;
