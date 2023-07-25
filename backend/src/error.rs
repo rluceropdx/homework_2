@@ -1,5 +1,5 @@
-use axum::Json;
 use axum::response::{IntoResponse, Response};
+use axum::Json;
 use http::StatusCode;
 use serde_json::json;
 use sqlx::Error;
@@ -9,7 +9,7 @@ pub enum AppError {
     Question(QuestionError),
     Database(sqlx::Error),
     #[allow(dead_code)]
-    Any(anyhow::Error)
+    Any(anyhow::Error),
 }
 
 #[derive(derive_more::Display, Debug)]
@@ -30,7 +30,7 @@ impl IntoResponse for AppError {
             }
         };
 
-        let body = Json(json!({"error": error_message}));
+        let body = Json(json!({ "error": error_message }));
         (status, body).into_response()
     }
 }

@@ -1,14 +1,14 @@
 use axum::response::Response;
-use axum::Router;
 use axum::routing::*;
+use axum::Router;
 use http::StatusCode;
 use hyper::Body;
 use sqlx::PgPool;
 use tracing::info;
 
-use crate::{handlers, layers};
 use crate::db::Store;
 use crate::handlers::root;
+use crate::{handlers, layers};
 
 pub async fn app(pool: PgPool) -> Router {
     let db = Store::with_pool(pool);
@@ -25,9 +25,7 @@ pub async fn app(pool: PgPool) -> Router {
         .route("/question", post(handlers::create_question))
         .route("/question", put(handlers::update_question))
         .route("/question", delete(handlers::delete_question))
-
         .route("/answer", post(handlers::create_answer))
-
         .route("/*_", get(handle_404))
         .layer(cors_layer)
         .layer(trace_layer)

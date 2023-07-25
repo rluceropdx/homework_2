@@ -13,7 +13,7 @@ pub async fn root() -> String {
 
 // CRUD create - read - update - delete
 pub async fn get_questions(
-    State(mut am_database): State<Store>
+    State(mut am_database): State<Store>,
 ) -> Result<Json<Vec<Question>>, AppError> {
     let all_questions = am_database.get_all_questions().await?;
 
@@ -22,7 +22,7 @@ pub async fn get_questions(
 
 pub async fn get_question_by_id(
     State(mut am_database): State<Store>,
-    Path(query): Path<i32>,    // localhost:3000/question/5
+    Path(query): Path<i32>, // localhost:3000/question/5
 ) -> Result<Json<Question>, AppError> {
     let question = am_database.get_question_by_id(QuestionId(query)).await?;
     Ok(Json(question))
@@ -32,7 +32,9 @@ pub async fn create_question(
     State(mut am_database): State<Store>,
     Json(question): Json<CreateQuestion>,
 ) -> Result<Json<()>, AppError> {
-    am_database.add_question(question.title, question.content, question.tags).await?;
+    let _ = am_database
+        .add_question(question.title, question.content, question.tags)
+        .await?;
 
     Ok(Json(()))
 }
@@ -60,6 +62,8 @@ pub async fn create_answer(
 ) -> Result<Json<Answer>, AppError> {
     dbg!("GOT CREATE ANSWER:");
     dbg!(&answer);
-    let new_answer = am_database.add_answer(answer.content, answer.question_id).await?;
+    let new_answer = am_database
+        .add_answer(answer.content, answer.question_id)
+        .await?;
     Ok(Json(new_answer))
 }

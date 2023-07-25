@@ -23,9 +23,7 @@ async fn test_add_question(db_pool: PgPool) {
                 .method(http::Method::POST)
                 .uri("/question")
                 .header(http::header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
-                .body(Body::from(
-                    serde_json::to_string(&question).unwrap()
-                ))
+                .body(Body::from(serde_json::to_string(&question).unwrap()))
                 .unwrap(),
         )
         .await
@@ -95,7 +93,9 @@ async fn test_update_question(db_pool: PgPool) {
                 .method(http::Method::PUT)
                 .uri("/question")
                 .header(http::header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
-                .body(Body::from(serde_json::to_string(&updated_question).unwrap()))
+                .body(Body::from(
+                    serde_json::to_string(&updated_question).unwrap(),
+                ))
                 .unwrap(),
         )
         .await
@@ -108,7 +108,6 @@ async fn test_update_question(db_pool: PgPool) {
 async fn test_delete_question(db_pool: PgPool) {
     println!("In test delete");
     let app = app(db_pool).await;
-
 
     let query_uri = format!("/question?question_id=1");
 
