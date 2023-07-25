@@ -196,7 +196,7 @@ SELECT * FROM questions
             title: q_row.title,
             content: q_row.content,
             tags: q_row.tags,
-            created_on: Default::default(),
+            created_on: q_row.created_on,
             comments: c_rows
                 .into_iter()
                 .map(|row| CommentResult {
@@ -210,7 +210,7 @@ SELECT * FROM questions
                 .map(|row| AnswerResult {
                     id: row.id,
                     content: row.content,
-                    created_on: Default::default(),
+                    created_on: row.created_on,
                     comments: answer_comments.clone(),
                 })
                 .collect(),

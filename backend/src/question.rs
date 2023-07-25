@@ -1,6 +1,6 @@
 use crate::answer::AnswerResult;
 use crate::comment::CommentResult;
-use chrono::NaiveDateTime;
+use chrono::{DateTime, Utc};
 use derive_more::Display;
 use serde_derive::{Deserialize, Serialize};
 
@@ -102,7 +102,7 @@ pub struct QuestionResult {
     pub title: String,
     pub content: String,
     pub tags: Option<Vec<String>>,
-    pub created_on: NaiveDateTime,
+    pub created_on: DateTime<Utc>,
     pub comments: Vec<CommentResult>,
     pub answers: Vec<AnswerResult>,
 }

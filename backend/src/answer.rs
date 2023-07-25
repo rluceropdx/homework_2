@@ -1,5 +1,5 @@
 use crate::comment::CommentResult;
-use chrono::NaiveDateTime;
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 use crate::question::QuestionId;
@@ -18,7 +18,7 @@ pub struct AnswerId(pub i32);
 pub struct AnswerResult {
     pub id: i32,
     pub content: String,
-    pub created_on: NaiveDateTime,
+    pub created_on: DateTime<Utc>,
     pub comments: Vec<CommentResult>,
 }
 

@@ -7,7 +7,7 @@ use sqlx::Error;
 #[derive(Debug)]
 pub enum AppError {
     Question(QuestionError),
-    Database(sqlx::Error),
+    Database(Error),
     #[allow(dead_code)]
     Any(anyhow::Error),
 }
@@ -35,7 +35,7 @@ impl IntoResponse for AppError {
     }
 }
 
-impl From<sqlx::Error> for AppError {
+impl From<Error> for AppError {
     fn from(value: Error) -> Self {
         AppError::Database(value)
     }
